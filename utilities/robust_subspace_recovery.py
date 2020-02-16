@@ -22,7 +22,7 @@ class RSR():
         self.k = k
         self.max_iters = max_iters
 
-    def trimmed_optimization(self, x, y, max_iters=100):
+    def trimmed_optimization(self, x, y):
         '''
         Trimmed optimization for subspace recovery
 
@@ -36,19 +36,19 @@ class RSR():
         '''
         
         # initialize random assignment
-        assignments = np.zeros((self.n1+self.n,1))
+        assignments = np.zeros((self.n1+self.n,1)).astype(bool)
         idx = np.random.choice(self.n+self.n1, self.n, replace=False)
         assignments[idx] = 1
 
         it = 1
-        while it <= max_iters:
+        while it <= self.max_iters:
             weights = self.optimize_parameters(assignments, x, y)
             losses = [0 for _ in range(self.n1+self.n)]
             for i in range(self.n1+self.n):
-                losses[i] = np.linalg.norm(y[i]-x[i].dot(weights))
+                losses[i] = np.linalg.norm(y[i]-weights.dot(x[i]))
 
-            new_idx = np.argpartition(losses, self.n)
-            new_assignments = np.zeros((self.n1+self.n,1))
+            new_idx = np.argpartition(losses, self.n)[:self.n]
+            new_assignments = np.zeros((self.n1+self.n,1)).astype(bool)
             new_assignments[new_idx] = 1
 
             if np.equal(assignments, new_assignments).all():
@@ -71,13 +71,13 @@ class RSR():
         Outputs:
         - weights: optimized parameters
         '''
-        x = x[assignments]
-        y = y[assignments]
-        weights= (x.T.dot(x)).inv().dot(x.T.dot(y)).T
+        x = x[assignments.reshape(-1,)]
+        y = y[assignments.reshape(-1,)]
+        weights= np.linalg.inv(x.T.dot(x)).dot(x.T.dot(y)).T
         return weights
 
 
-    def robust_subspace_recovery(self, max_iters=100):
+    def recover(self):
         '''
         Efficient Robust Subspace Recovery.
 
@@ -90,15 +90,17 @@ class RSR():
         '''
 
         n, m = self.X.shape
-        U = np.zeros((n, self.k))
-        B = np.zeros((m, self.k))
+        U = np.random.rand(n, self.k)
+        B = np.random.rand(m, self.k)
 
         it = 1
-        while it <= max_iters:
+        while it <= self.max_iters:
             U = self.optimize_U(B)
             # TODO: optimize for B
-            B = self.optimize_B(U)
+            B, assignments = self.optimize_B(U)
             it += 1
+
+        return assignments, U, B
 
     def optimize_U(self, B):
         '''
@@ -112,7 +114,7 @@ class RSR():
         '''
 
         # Closed form for optimal U: XB = UB^TB
-        new_U = (B.T.dot(B)).inv().dot(self.X.dot(B))
+        new_U = self.X.dot(B).dot(np.linalg.inv(B.T.dot(B)))
         return new_U
 
     def optimize_B(self, U):
@@ -125,5 +127,5 @@ class RSR():
         Outputs:
         - new_B: alternative optimized B
         '''
-        new_B = self.trimmed_optimization(U, self.X, max_iters=100)
-        return new_B
+        new_B, new_assignments = self.trimmed_optimization(U, self.X)
+        return new_B, new_assignments
