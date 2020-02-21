@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class RSR():
+class RSR:
     def __init__(self, X, y, n, n1, k, max_iters=100):
         '''
         Trimmed optimization for subspace recovery
