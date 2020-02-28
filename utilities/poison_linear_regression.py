@@ -15,20 +15,20 @@ def poison_linear_regression(X, y, X_c, y_c, lam, betta, sigma, eps):
         y_new = np.concatenate([y, y_c])
         w, b = learn_LRclassifier(X_new, y_new, lam)
         X_c_old = X_c
-        for ind, x_c in enumerate(X_c):
+        for ind, x_c in enumerate(X_c_old):
             # learn classifier w and b on new data X_new, y_new
             delta_W = compute_gradient(X_new, y_new, x_c, y_c[ind], w, b, lam)
             d = box_projection(x_c + delta_W, 0, 1) - x_c
-            # line search to set the gradient step etta
+            # line search to set the proper gradient step etta
+            x_c_old = x_c
             for k in range(10):
                 etta = betta ^ k
-                x_c_old = x_c
                 # update x_c along direction d to maximize error
-                x_c = x_c + etta * d
-                X_c[ind] = x_c
+                x_c = x_c_old + etta * d
                 if attack_objective(x_c, y_c[ind], w, b, lam) <= (
                         attack_objective(x_c_old, y_c[ind], w, b, lam) - sigma * etta * np.linalg.norm(d, 2)):
                     break
+            X_c[ind] = x_c
         if eps < attack_objective(X_c, y_c, w, b, lam) - attack_objective(X_c_old, y_c, w, b, lam) < eps:
             break
 
@@ -53,9 +53,7 @@ def learn_LRclassifier(X, y, lam):
 
 def compute_gradient(X, y, x_c, y_c, w, b, lam):
 
-    """
-    compute gradient of w and b w.r.t. x_c
-    """
+    """compute gradient of w and b w.r.t. x_c"""
     n, d = np.shape(X)
     Sig = 1/n * X.T.dot(X)  # shape: d by d
     mu = 2/n * X.T.dot(np.ones(n))  # shape: d by 1
@@ -69,6 +67,7 @@ def compute_gradient(X, y, x_c, y_c, w, b, lam):
     dw = solution_vec[0:d]
     db = solution_vec[-1]
 
+    """compute gradient"""
     # compute gradient
     r = w.T  # r is the gradient of regularization term w.r.t. w, for regression it is w^T
     grad = 1/n * (X.dot(w) + b * np.ones(n) - y).T.dot(X.dot(dw) + db.dot(np.ones(n))) + lam * r.dot(dw)
@@ -77,6 +76,11 @@ def compute_gradient(X, y, x_c, y_c, w, b, lam):
 
 
 def box_projection(x, lowerbound, upperbound):
+
+    d = len(x)
+    x_projected = np.zeros(d)
+    for ind in range(d):
+        x_projected[ind] = min(upperbound, max(lowerbound, x[ind]))
 
     return x_projected
 
