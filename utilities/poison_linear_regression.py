@@ -4,9 +4,10 @@ import numpy as np
 def poison_linear_regression(X, y, X_c, y_c, lam, betta, sigma, eps):
     """
     Generate additional adversarial training data.
-    :param X, y: the training data and lables
+    :param X, y: the training data and lables, each feature is normalized in (0, 1)
     :param X_c: set of initial data vectors x_c - q by k
     :param y_c: set of initial data labels - q by 1
+    :param lam: regularization coefficient for the linear classifier
     :return: final attack points
     """
     max_iter = 100
@@ -43,8 +44,9 @@ def learn_LRclassifier(X, y, lam):
     :param lamda:
     :return:
     """
-    X_tl = np.concatenate([X, np.ones(len(y), 1)], axis=0)
-    w_tl = np.linalg.inv(X_tl.T.dot(X_tl)).dot(X_tl.T).dot(y)
+    n, d = np.shape(X)
+    X_tl = np.concatenate([X, np.ones(n, 1)], axis=0)
+    w_tl = np.linalg.inv(X_tl.T.dot(X_tl) + lam * np.ones(d)).dot(X_tl.T).dot(y)
     w = w_tl[0:-1]
     b = w_tl[-1]
 
@@ -75,12 +77,12 @@ def compute_gradient(X, y, x_c, y_c, w, b, lam):
     return grad
 
 
-def box_projection(x, lowerbound, upperbound):
+def box_projection(x, low, upp):
 
     d = len(x)
     x_projected = np.zeros(d)
     for ind in range(d):
-        x_projected[ind] = min(upperbound, max(lowerbound, x[ind]))
+        x_projected[ind] = min(upp, max(low, x[ind]))
 
     return x_projected
 

@@ -1,6 +1,7 @@
 import numpy as np
 from utilities.robust_subspace_recovery import RSR
 from utilities.dgp import generate_pristine_data, poison_subspace_recovery
+from utilities.poison_linear_regression import poison_linear_regression
 
 def main():
     n = 350
