@@ -14,18 +14,23 @@ def main():
     k = 20
 
     X_star = generate_pristine_data(n, k, m)
-    X_A = poison_subspace_recovery(X_star, n1, k, m)
+    X_a1 = poison_subspace_recovery(X_star, n1, k, m)
 
-    X = np.random.rand(n, k)
-    w = np.random.rand(k)
-    y = X.dot(w)
-    X_c = X[0:50, :]
-    y_c = y[0:50]
+
+    w_star = np.random.rand(m)
+    y_star = X_star.dot(w_star)
+
+    robust_recovery = RSR(X_star, y_star, n, n1, k, max_iters=100)
+    assignments, U, B = robust_recovery.recover()
+
+    ind_adv_seeds = np.random.choice(n, n1, replace=False)
+    X_c = X_star[ind_adv_seeds]
+    y_c = y_star[ind_adv_seeds]
     lam = 0.001
     betta = 0.5
     sigma = 0.01
     eps = 0.01
-    X_a = poison_linear_regression(X, y, X_c, y_c, lam, betta, sigma, eps)
+    X_a2 = poison_linear_regression(X_star, y_star, X_c, y_c, lam, betta, sigma, eps)
 
 if __name__ == "__main__":
     main()
