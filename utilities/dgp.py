@@ -28,7 +28,7 @@ def generate_pristine_data(n, k, m):
         return None
 
     X_star = U.dot(B)
-    return X_star
+    return X_star, U
     
 
 def poison_subspace_recovery(X_star, n1, k, m):

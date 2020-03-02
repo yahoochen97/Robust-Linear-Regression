@@ -2,13 +2,12 @@ import numpy as np
 
 
 class RSR:
-    def __init__(self, X, y, n, n1, k, max_iters=100):
+    def __init__(self, X, n, n1, k, max_iters=100):
         '''
         Trimmed optimization for subspace recovery
 
         Inputs:
         - X: training data
-        - y: training label
         - n: number of pristine examples
         - n1: number of poisoning examples
         - k: rank of subspace
@@ -16,7 +15,6 @@ class RSR:
         - max_iters: maximal iterations for optimization
         '''
         self.X = X
-        self.y = y
         self.n = n
         self.n1 = n1
         self.k = k
