@@ -15,11 +15,12 @@ def poison_linear_regression(X, y, X_c, y_c, lam, betta, sigma, eps):
     for iter in range(max_iter):
         X_new = np.concatenate([X, X_c], axis=0)
         y_new = np.concatenate([y, y_c])
+        # learn classifier w and b on new data X_new, y_new
         w, b = learn_LRclassifier(X_new, y_new, lam)
         X_c_old = X_c
         for ind, x_c in enumerate(X_c_old):
-            # learn classifier w and b on new data X_new, y_new
-            delta_W = compute_gradient(X_new, y_new, x_c, y_c[ind], w, b, lam)
+            # compute objective gradient on original data, excluding the atack samples
+            delta_W = compute_gradient(X, y, x_c, y_c[ind], w, b, lam)
             d = box_projection(x_c + delta_W, 0, 1) - x_c
             # line search to set the proper gradient step etta
             x_c_old = x_c
