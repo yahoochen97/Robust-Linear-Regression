@@ -1,28 +1,28 @@
 import numpy as np
 
-def generate_gaussian(SIZE, k):
+def generate_gaussian(SIZE, k, iters=100):
     '''
     Generate independent gaussian.
     '''
     it = 0
-    while it<10:
+    while it<iters:
         m = np.random.normal(loc=0, scale=1, size=SIZE)
         if np.linalg.matrix_rank(m) == k:
             return m
         it += 1
-    if it==10:
-        print("Matrix has rank larger than k. Try again.")
+    if it==iters:
+        print("Matrix has rank other than k. Try again.")
         return None
 
-def generate_pristine_data(n, k, m):
+def generate_pristine_data(n, k, m, iters):
     '''
     Generate pristine data.
     '''
     # generate U
-    U = generate_gaussian((n,k), k)
+    U = generate_gaussian((n,k), k, iters)
 
     # generate B
-    B = generate_gaussian((k,m), k)
+    B = generate_gaussian((k,m), k, iters)
     
     if U is None or B is None:
         return None

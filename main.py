@@ -3,16 +3,16 @@ from utilities.robust_subspace_recovery import RSR
 from utilities.dgp import generate_pristine_data, poison_subspace_recovery
 from utilities.poison_linear_regression import poison_linear_regression
 
-def main():
-    n = 350
-    m = 50
-    n1 = 50
+def recovery():
+    n = 220
+    m = 400
+    n1 = 400 - n
+    k = 10
     # for k in range(20):
     #     X_star = generate_pristine_data(n, k, m)
     #     X_A = poison_subspace_recovery(X_star, n1, k, m)
 
-    k = 20
-    X_star, U_star = generate_pristine_data(n, k, m)
+    X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
 
     # poisoning for subspace recovery
     X_a1 = poison_subspace_recovery(X_star, n1, k, m)
@@ -20,7 +20,19 @@ def main():
     robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
     assignments, U, B = robust_recovery.recover()
 
+    print(np.sum(assignments[-n1:]))
+    diff = X_star-U[assignments.reshape(-1,)].dot(B.T)
+    print(np.sqrt(np.mean(diff**2)))
+    
+    # TODO: Generate plots
+
+def regression():
     # poisoning for linear regression
+    n = 390
+    m = k = 20
+    n1 = 400 - n
+    X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
+
     w_star = np.random.rand(k)
     y_star = U_star.dot(w_star)
     ind_adv_seeds = np.random.choice(n, n1, replace=False)
@@ -32,6 +44,17 @@ def main():
     eps = 0.01
 
     X_a2 = poison_linear_regression(U_star, y_star, X_c, y_c, lam, betta, sigma, eps)
+    U_all = np.concatenate([U_star, X_a2], axis=0)
+    y_all = np.concatenate([y_star, y_c], axis=0)
+
+    # TODO: Trimmed Regression
+
+    robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
+    assignments, U, B = robust_recovery.recover()
+
+def main():
+    recovery()
+    regression()
 
 if __name__ == "__main__":
     main()
