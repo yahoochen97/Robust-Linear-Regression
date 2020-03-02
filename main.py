@@ -12,6 +12,10 @@ def main():
     #     X_A = poison_subspace_recovery(X_star, n1, k, m)
 
     k = 20
+
+    X_star = generate_pristine_data(n, k, m)
+    X_A = poison_subspace_recovery(X_star, n1, k, m)
+
     X = np.random.rand(n, k)
     w = np.random.rand(k)
     y = X.dot(w)

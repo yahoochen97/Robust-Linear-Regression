@@ -46,8 +46,8 @@ def poison_subspace_recovery(X_star, n1, k, m):
 
     it = 0
     while it<10:
-        idx = np.random.choice(X_star.shape[0], k/2,replace=False)
-        B_A[:k/2,:] = X_star[idx]
+        idx = np.random.choice(X_star.shape[0], int(k/2), replace=False)
+        B_A[:int(k/2),:] = X_star[idx]
         if np.linalg.matrix_rank(B_A) == k:
             break
         it += 1
