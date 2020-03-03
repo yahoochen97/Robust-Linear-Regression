@@ -97,17 +97,13 @@ def regression():
     rmse = np.sqrt(np.mean(pow(y_predict - y_star, 2)))
     print(rmse)
 
-<<<<<<< HEAD
     robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
     assignments, U, B = robust_recovery.recover()
 
 def main():
     runtime()
-    # recovery()
-    # regression()
-=======
->>>>>>> 76e9030d10a271bc8248c3c90552e9884b14fabe
+    recovery()
+    regression()
 
 if __name__ == "__main__":
-    # recovery()
-    regression()
+    main()
