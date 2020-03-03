@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def generate_gaussian(SIZE, k, iters=100):
     '''
     Generate independent gaussian.
