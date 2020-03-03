@@ -85,6 +85,7 @@ class RobustRegression:
         robust_recovery = RSR(self.X, self.n, self.n1, self.k, self.max_iters)
         assignments, U, B = robust_recovery.recover()
 
+        print("low space")
         print(np.sum(assignments[-self.n1:]==0)/self.n1)
         diff = X_star - U[assignments.reshape(-1, )].dot(B.T)
         print(np.sqrt(np.mean(diff ** 2)))

@@ -87,6 +87,7 @@ def regression():
 
     X_a2 = poison_linear_regression(X_star, y_star, X_c, y_c, lam, betta, sigma, eps)
     # X_a2 = (X_a2 - np.mean(X_a2)) / np.std(X_a2)
+    print("mean,std")
     print(np.mean(X_a2))
     print(np.std(X_a2))
     X_all = np.concatenate([X_star, X_a2], axis=0)
@@ -97,6 +98,7 @@ def regression():
     w_predict = robust_regression.trimmed_principal_component_regression(X_star)
     y_predict = X_star.dot(w_predict)
     rmse = np.sqrt(np.mean(pow(y_predict - y_star, 2)))
+    print("high space")
     print(rmse)
 
     # robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
