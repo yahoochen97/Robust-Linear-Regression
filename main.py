@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import sys
 import matplotlib.pyplot as plt
 from utilities.robust_subspace_recovery import RSR
 from utilities.robust_regression import RobustRegression
@@ -41,7 +42,6 @@ def runtime():
     plt.savefig("results/runtime.png")
     plt.show()
 
-
 def recovery():
     m = 400
     k = 10
@@ -66,8 +66,6 @@ def recovery():
     plt.legend(loc='best')
     plt.xticks([50*i for i in range(5)], [50*i for i in range(5)])
     plt.show()
-    
-
 
 def regression():
     # poisoning for linear regression
@@ -100,10 +98,18 @@ def regression():
     robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
     assignments, U, B = robust_recovery.recover()
 
-def main():
-    runtime()
-    recovery()
-    regression()
-
 if __name__ == "__main__":
-    main()
+    msg = "Usage: python main.py runtime/recovery/regression"
+    if len(sys.argv) <=1 :
+        print(msg)
+    else:
+        arg = sys.argv[1]
+        if arg == 'runtime':
+            runtime()
+        elif arg == 'recovery':
+            recovery()
+        elif arg == 'regression':
+            regression()
+        else:
+            print(msg)
+    
