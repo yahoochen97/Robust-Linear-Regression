@@ -1,30 +1,69 @@
 import numpy as np
+import time
+import matplotlib.pyplot as plt
 from utilities.robust_subspace_recovery import RSR
 from utilities.dgp import generate_pristine_data, poison_subspace_recovery
 from utilities.poison_linear_regression import poison_linear_regression
 
-def recovery():
-    n = 220
+def runtime():
+    n = 350
     m = 400
-    n1 = 400 - n
+    n1 = 50
+    runs = 100
+    times = []
+    ks = range(1,21)
+    for k in ks:
+        ts = np.zeros((runs,))
+        for run in range(runs):
+            X_star, _ = generate_pristine_data(n-n1, k, m, iters=100)
+            # poisoning for subspace recovery
+            X_a1 = poison_subspace_recovery(X_star, n1, k, m)
+            X_all = np.concatenate([X_star, X_a1], axis=0)
+            robust_recovery = RSR(X_all, n-n1, n1, k, max_iters=100)
+            start = time.time()
+            _, _, _ = robust_recovery.recover()
+            end = time.time()
+            ts[run] = end - start
+        # p25 = np.percentile(ts, 25)
+        # p75 = np.percentile(ts, 75)
+        # ts = ts[(ts<=p75) & (ts>=p25)]
+        # print(ts)
+        times.append(np.mean(ts))
+
+    plt.plot(ks, times, label='TPCR')
+    plt.xlabel('Rank')
+    plt.ylabel('Time(s)')
+    plt.legend(loc='best')
+    plt.xticks([5*i for i in range(5)], [5*i for i in range(5)])
+    plt.savefig("results/runtime.png")
+    plt.show()
+
+
+def recovery():
+    m = 400
     k = 10
-    # for k in range(20):
-    #     X_star = generate_pristine_data(n, k, m)
-    #     X_A = poison_subspace_recovery(X_star, n1, k, m)
-
-    X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
-
-    # poisoning for subspace recovery
-    X_a1 = poison_subspace_recovery(X_star, n1, k, m)
-    X_all = np.concatenate([X_star, X_a1], axis=0)
-    robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
-    assignments, U, B = robust_recovery.recover()
-
-    print(np.sum(assignments[-n1:]))
-    diff = X_star-U[assignments.reshape(-1,)].dot(B.T)
-    print(np.sqrt(np.mean(diff**2)))
+    n1s = [10+10*i for i in range(20)]
+    irs = []
+    for n1 in n1s:
+        n = 400 - n1
+        X_star, U_star = generate_pristine_data(n, k, m, iters=100)
+        # poisoning for subspace recovery
+        X_a1 = poison_subspace_recovery(X_star, n1, k, m)
+        X_all = np.concatenate([X_star, X_a1], axis=0)
+        robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
+        assignments, U, B = robust_recovery.recover()
+        identification_rate = np.sum(assignments[-n1:]==0)/n1
+        # diff = X_star-U[assignments.reshape(-1,)].dot(B.T)
+        # print(np.sqrt(np.mean(diff**2)))
+        irs.append(identification_rate)
     
-    # TODO: Generate plots
+    plt.plot(n1s, irs, label='TPCR')
+    plt.xlabel('# Corrupted Rows')
+    plt.ylabel('Identification Rate')
+    plt.legend(loc='best')
+    plt.xticks([50*i for i in range(5)], [50*i for i in range(5)])
+    plt.show()
+    
 
 def regression():
     # poisoning for linear regression
@@ -53,8 +92,9 @@ def regression():
     assignments, U, B = robust_recovery.recover()
 
 def main():
-    recovery()
-    regression()
+    runtime()
+    # recovery()
+    # regression()
 
 if __name__ == "__main__":
     main()
