@@ -70,11 +70,12 @@ def recovery():
 def regression():
     # poisoning for linear regression
     n = 380
-    m = k = 20
+    m = 20
+    k = 20
     n1 = 400 - n
     X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
 
-    w_star = np.random.rand(k)
+    w_star = np.random.rand(m)
     y_star = X_star.dot(w_star)
     ind_adv_seeds = np.random.choice(n, n1, replace=False)
     X_c = X_star[ind_adv_seeds]
@@ -85,6 +86,9 @@ def regression():
     eps = 0.01
 
     X_a2 = poison_linear_regression(X_star, y_star, X_c, y_c, lam, betta, sigma, eps)
+    # X_a2 = (X_a2 - np.mean(X_a2)) / np.std(X_a2)
+    print(np.mean(X_a2))
+    print(np.std(X_a2))
     X_all = np.concatenate([X_star, X_a2], axis=0)
     y_all = np.concatenate([y_star, y_c], axis=0)
 
@@ -95,8 +99,8 @@ def regression():
     rmse = np.sqrt(np.mean(pow(y_predict - y_star, 2)))
     print(rmse)
 
-    robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
-    assignments, U, B = robust_recovery.recover()
+    # robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
+    # assignments, U, B = robust_recovery.recover()
 
 if __name__ == "__main__":
     msg = "Usage: python main.py runtime/recovery/regression"
