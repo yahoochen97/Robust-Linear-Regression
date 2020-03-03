@@ -2,8 +2,11 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 from utilities.robust_subspace_recovery import RSR
-from utilities.dgp import generate_pristine_data, poison_subspace_recovery
+from utilities.robust_regression import RobustRegression
+from utilities.poison_subspace_recovery import generate_pristine_data, poison_subspace_recovery
 from utilities.poison_linear_regression import poison_linear_regression
+from sklearn.preprocessing import normalize
+
 
 def runtime():
     n = 350
@@ -65,29 +68,36 @@ def recovery():
     plt.show()
     
 
+
 def regression():
     # poisoning for linear regression
-    n = 390
+    n = 380
     m = k = 20
     n1 = 400 - n
     X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
 
     w_star = np.random.rand(k)
-    y_star = U_star.dot(w_star)
+    y_star = X_star.dot(w_star)
     ind_adv_seeds = np.random.choice(n, n1, replace=False)
-    X_c = U_star[ind_adv_seeds]
+    X_c = X_star[ind_adv_seeds]
     y_c = y_star[ind_adv_seeds]
     lam = 0.001
     betta = 0.5
     sigma = 0.01
     eps = 0.01
 
-    X_a2 = poison_linear_regression(U_star, y_star, X_c, y_c, lam, betta, sigma, eps)
-    U_all = np.concatenate([U_star, X_a2], axis=0)
+    X_a2 = poison_linear_regression(X_star, y_star, X_c, y_c, lam, betta, sigma, eps)
+    X_all = np.concatenate([X_star, X_a2], axis=0)
     y_all = np.concatenate([y_star, y_c], axis=0)
 
     # TODO: Trimmed Regression
+    robust_regression = RobustRegression(X_all, y_all, n, n1, k, max_iters=100)
+    w_predict = robust_regression.trimmed_principal_component_regression(X_star)
+    y_predict = X_star.dot(w_predict)
+    rmse = np.sqrt(np.mean(pow(y_predict - y_star, 2)))
+    print(rmse)
 
+<<<<<<< HEAD
     robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
     assignments, U, B = robust_recovery.recover()
 
@@ -95,6 +105,9 @@ def main():
     runtime()
     # recovery()
     # regression()
+=======
+>>>>>>> 76e9030d10a271bc8248c3c90552e9884b14fabe
 
 if __name__ == "__main__":
-    main()
+    # recovery()
+    regression()
