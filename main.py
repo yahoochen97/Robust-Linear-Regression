@@ -21,7 +21,7 @@ def runtime():
         ts = np.zeros((runs,))
         for run in range(runs):
             X_star, _ = generate_pristine_data(n-n1, k, m, iters=100)
-            X_noised = X_star + np.random.normal(loc=0, scale=1, size=X_star.shape)
+            X_noised = X_star + np.random.normal(loc=0, scale=0.01, size=X_star.shape)
             # poisoning for subspace recovery
             X_a1 = poison_subspace_recovery(X_star, n1, k, m)
             X_all = np.concatenate([X_noised, X_a1], axis=0)
@@ -55,7 +55,7 @@ def recovery():
     for n1 in n1s:
         n = 400 - n1
         X_star, U_star = generate_pristine_data(n, k, m, iters=100)
-        X_noised = X_star + np.random.normal(loc=0, scale=1, size=X_star.shape)
+        X_noised = X_star + np.random.normal(loc=0, scale=0.01, size=X_star.shape)
         # poisoning for subspace recovery
         X_a1 = poison_subspace_recovery(X_star, n1, k, m)
         X_all = np.concatenate([X_noised, X_a1], axis=0)
@@ -80,7 +80,7 @@ def regression():
     k = 20
     n1 = 400 - n
     X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
-    X_noised = X_star + np.random.normal(loc=0, scale=1, size=X_star.shape)
+    X_noised = X_star + np.random.normal(loc=0, scale=0.01, size=X_star.shape)
     w_star = np.random.rand(m)
     y_star = X_star.dot(w_star)
     ind_adv_seeds = np.random.choice(n, n1, replace=False)
