@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import sys
+import seaborn as sns
 import matplotlib.pyplot as plt
 from utilities.robust_subspace_recovery import RSR
 from utilities.robust_regression import RobustRegression
@@ -13,7 +14,7 @@ def runtime():
     n = 350
     m = 400
     n1 = 50
-    runs = 5
+    runs = 100
     times = []
     stds = []
     ks = range(1,21)
@@ -27,24 +28,50 @@ def runtime():
             X_all = np.concatenate([X_noised, X_a1], axis=0)
             robust_recovery = RSR(X_all, n-n1, n1, k, max_iters=100)
             start = time.time()
-            assignments, U, B = robust_recovery.recover()
+            _, _, _ = robust_recovery.recover()
             end = time.time()
             ts[run] = end - start
-        # p25 = np.percentile(ts, 25)
-        # p75 = np.percentile(ts, 75)
-        # ts = ts[(ts<=p75) & (ts>=p25)]
-        # print(ts)
         times.append(np.mean(ts))
         stds.append(np.std(ts))
 
     plt.plot(ks, times, label='TPCR')
     plt.plot(ks, stds, label='std')
-    plt.ylim(0,8)
+    plt.ylim(0,2)
     plt.xlabel('Rank')
     plt.ylabel('Time(s)')
     plt.legend(loc='best')
     plt.xticks([5*i for i in range(5)], [5*i for i in range(5)])
     plt.savefig("results/runtime.png")
+    plt.show()
+
+def recovery_rmse():
+    m = 400
+    n1s = [10+10*i for i in range(2)]
+    ks = range(1,21)
+    rmses = np.zeros((len(n1s),len(ks)))
+    for i,n1 in enumerate(n1s):
+        for j,k in enumerate(ks):
+            n = 400 - n1
+            if n1 <= k:
+                continue
+            X_star, _ = generate_pristine_data(n, k, m, iters=100)
+            X_noised = X_star + np.random.normal(loc=0, scale=0.01, size=X_star.shape)
+            # poisoning for subspace recovery
+            X_a1 = poison_subspace_recovery(X_star, n1, k, m)
+            print(n1)
+            print(k)
+            X_all = np.concatenate([X_noised, X_a1], axis=0)
+            robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
+            assignments, U, B = robust_recovery.recover()
+            diff = X_star-U[assignments.reshape(-1,)].dot(B.T)
+            rmses[i,j] = np.sqrt(np.mean(diff**2))
+    
+    ax = sns.heatmap(rmses, cmap='twilight_r', linewidths=0.5)
+    plt.ylabel('# Corrupted Rows')
+    plt.xlabel('Rank')
+    plt.yticks([50*i for i in range(5)], [50*i for i in range(5)])
+    plt.xticks([2+2*i for i in range(10)], [2+2*i for i in range(10)])
+    plt.savefig("results/rmse.png")
     plt.show()
 
 def recovery():
@@ -71,6 +98,7 @@ def recovery():
     plt.ylabel('Identification Rate')
     plt.legend(loc='best')
     plt.xticks([50*i for i in range(5)], [50*i for i in range(5)])
+    # plt.savefig("results/identification_rate.png")
     plt.show()
 
 def regression():
@@ -122,6 +150,8 @@ if __name__ == "__main__":
             recovery()
         elif arg == 'regression':
             regression()
+        elif arg == 'rmse':
+            recovery_rmse()
         else:
             print(msg)
     
