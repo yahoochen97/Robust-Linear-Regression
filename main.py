@@ -13,19 +13,21 @@ def runtime():
     n = 350
     m = 400
     n1 = 50
-    runs = 100
+    runs = 5
     times = []
+    stds = []
     ks = range(1,21)
     for k in ks:
         ts = np.zeros((runs,))
         for run in range(runs):
             X_star, _ = generate_pristine_data(n-n1, k, m, iters=100)
+            X_noised = X_star + np.random.normal(loc=0, scale=1, size=X_star.shape)
             # poisoning for subspace recovery
             X_a1 = poison_subspace_recovery(X_star, n1, k, m)
-            X_all = np.concatenate([X_star, X_a1], axis=0)
+            X_all = np.concatenate([X_noised, X_a1], axis=0)
             robust_recovery = RSR(X_all, n-n1, n1, k, max_iters=100)
             start = time.time()
-            _, _, _ = robust_recovery.recover()
+            assignments, U, B = robust_recovery.recover()
             end = time.time()
             ts[run] = end - start
         # p25 = np.percentile(ts, 25)
@@ -33,8 +35,11 @@ def runtime():
         # ts = ts[(ts<=p75) & (ts>=p25)]
         # print(ts)
         times.append(np.mean(ts))
+        stds.append(np.std(ts))
 
     plt.plot(ks, times, label='TPCR')
+    plt.plot(ks, stds, label='std')
+    plt.ylim(0,8)
     plt.xlabel('Rank')
     plt.ylabel('Time(s)')
     plt.legend(loc='best')
@@ -50,9 +55,10 @@ def recovery():
     for n1 in n1s:
         n = 400 - n1
         X_star, U_star = generate_pristine_data(n, k, m, iters=100)
+        X_noised = X_star + np.random.normal(loc=0, scale=1, size=X_star.shape)
         # poisoning for subspace recovery
         X_a1 = poison_subspace_recovery(X_star, n1, k, m)
-        X_all = np.concatenate([X_star, X_a1], axis=0)
+        X_all = np.concatenate([X_noised, X_a1], axis=0)
         robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
         assignments, U, B = robust_recovery.recover()
         identification_rate = np.sum(assignments[-n1:]==0)/n1
@@ -69,12 +75,12 @@ def recovery():
 
 def regression():
     # poisoning for linear regression
-    n = 380
+    n = 300
     m = 20
     k = 20
     n1 = 400 - n
     X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
-
+    X_noised = X_star + np.random.normal(loc=0, scale=1, size=X_star.shape)
     w_star = np.random.rand(m)
     y_star = X_star.dot(w_star)
     ind_adv_seeds = np.random.choice(n, n1, replace=False)
@@ -90,14 +96,14 @@ def regression():
     print("mean,std")
     print(np.mean(X_a2))
     print(np.std(X_a2))
-    X_all = np.concatenate([X_star, X_a2], axis=0)
+    X_all = np.concatenate([X_noised, X_a2], axis=0)
     y_all = np.concatenate([y_star, y_c], axis=0)
 
     # TODO: Trimmed Regression
     robust_regression = RobustRegression(X_all, y_all, n, n1, k, max_iters=100)
     w_predict = robust_regression.trimmed_principal_component_regression(X_star)
     y_predict = X_star.dot(w_predict)
-    rmse = np.sqrt(np.mean(pow(y_predict - y_star, 2)))
+    rmse = np.linalg.norm(y_predict - y_star)
     print("high space")
     print(rmse)
 

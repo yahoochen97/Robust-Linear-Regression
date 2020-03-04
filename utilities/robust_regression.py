@@ -94,7 +94,9 @@ class RobustRegression:
         # B = u.dot(vh)
         U = self.X.dot(B)
         weight_U, assignment = self.trimmed_optimization(U, self.y)
+        # print(np.sum((assignments.astype(int)-assignment.astype(int))==0))
         weight = B.dot(weight_U)
+        print(np.sum(assignment[-self.n1:]==0)/self.n1)
 
         return weight
 
