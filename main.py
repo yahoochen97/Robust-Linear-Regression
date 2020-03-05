@@ -142,7 +142,7 @@ def regression():
 
         # train robust regression model
         robust_regression = RobustRegression(X_all, y_all, n, n1, k, max_iters=100)
-        w_predict = robust_regression.trimmed_principal_component_regression(X_star)
+        w_predict = robust_regression.trimmed_principal_component_regression()
 
         # generate test dataset
         X_test, _ = generate_pristine_data(n, k, m, iters=1000)

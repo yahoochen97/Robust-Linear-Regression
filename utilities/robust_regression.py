@@ -76,7 +76,7 @@ class RobustRegression:
         weights = np.linalg.inv(x.T.dot(x)).dot(x.T.dot(y)).T
         return weights
 
-    def trimmed_principal_component_regression(self, X_star):
+    def trimmed_principal_component_regression(self):
         """
 
         :param B: a basis from X using Algorithm 2 in paper
