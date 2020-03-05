@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from utilities.robust_subspace_recovery import RSR
 from utilities.robust_regression import RobustRegression
 from utilities.poison_subspace_recovery import generate_pristine_data, poison_subspace_recovery
-from utilities.poison_linear_regression import poison_linear_regression
+from utilities.poison_linear_regression import poison_linear_regression, train_classifier
 from sklearn.preprocessing import normalize, MinMaxScaler
 
 
@@ -109,7 +109,9 @@ def regression():
     m = 20
     k = 20
     n1s = [10 + 10 * i for i in range(20)]
-    RMSEs = []
+    RMSEs_rlr = []
+    RMSEs_lr = []
+    RMSEs_lro = []
 
     for n1 in n1s:
 
@@ -129,12 +131,14 @@ def regression():
         ind_adv_seeds = np.random.choice(n, n1, replace=False)
         X_c = X_star[ind_adv_seeds]
         y_c = y_star[ind_adv_seeds]
+        X_clean = np.concatenate([X_noised, X_c], axis=0)
+        y_clean = np.concatenate([y_star, y_c], axis=0)
 
         # poison training data
         param = dict()
         param['lam'] = 0.001
         param['beta'] = 0.5
-        param['sigma'] = 5
+        param['sigma'] = 1e-4
         param['eps'] = 1e-6
         X_a2 = poison_linear_regression(X_star, y_star, feature_range, X_c, y_c, param, max_iter=2000)
         X_all = np.concatenate([X_noised, X_a2], axis=0)
@@ -144,6 +148,10 @@ def regression():
         robust_regression = RobustRegression(X_all, y_all, n, n1, k, max_iters=100)
         w_predict = robust_regression.trimmed_principal_component_regression()
 
+        # train normal LR classifier
+        w_lr, b_lr = train_classifier(X_all, y_all, param['lam'])
+        w_lro, b_lro = train_classifier(X_clean, y_clean, param['lam'])
+
         # generate test dataset
         X_test, _ = generate_pristine_data(n, k, m, iters=1000)
         X_test = scalar.transform(X_test)
@@ -152,16 +160,24 @@ def regression():
 
         # test robust regression model
         y_predict = X_test.dot(w_predict)
-        RMSE = np.sqrt(np.mean((y_predict - y_test) ** 2))
-        print('# corrupted rows', n1, ' RMSE:', RMSE)
-        RMSEs.append(RMSE)
+        RMSE_rlr = np.sqrt(np.mean((y_predict - y_test) ** 2))
+        RMSEs_rlr.append(RMSE_rlr)
 
-    # plot RMSE
+        # test normal LR model
+        y_lr = X_test.dot(w_lr) + b_lr
+        RMSE_lr = np.sqrt(np.mean((y_lr - y_test) ** 2))
+        RMSEs_lr.append(RMSE_lr)
+        y_lro = X_test.dot(w_lro) + b_lro
+        RMSE_lro = np.sqrt(np.mean((y_lro - y_test) ** 2))
+        RMSEs_lro.append(RMSE_lro)
+        print('# corrupted rows', n1, 'RMSE_rlr:', RMSE_rlr, 'RMSE_lr:', RMSE_lr, 'RMSE_lro', RMSE_lro)
+
+    # plot RMSE_rlr
     plt.figure()
-    plt.plot(n1s, RMSEs)
-    plt.title('Regression Output RMSE vs # corrupted rows')
+    plt.plot(n1s, RMSEs_rlr)
+    plt.title('Regression Output RMSE_rlr vs # corrupted rows')
     plt.xlabel('corrupted rows')
-    plt.ylabel('RMSE')
+    plt.ylabel('RMSE_rlr')
     plt.ylim(0, 1.2)
 
 

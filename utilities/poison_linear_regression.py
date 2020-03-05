@@ -35,10 +35,11 @@ def poison_linear_regression(X, y, feature_range, X_c, y_c, param, max_iter=2000
             for k in range(100):
                 eta = beta ** k
                 # update x_c along update_direction update_direction to maximize error
+                X_c[ind] = X_c[ind] + eta * update_direction
                 obj_new = attack_objective(X_c[ind] + eta * update_direction, y_c[ind], w, b, lam)
                 obj_old = attack_objective(X_c[ind], y_c[ind], w, b, lam)
+                # print(k, obj_new - obj_old)
                 if obj_new <= obj_old - sigma * eta * np.linalg.norm(update_direction, 2):
-                    X_c[ind] = X_c[ind] + eta * update_direction
                     break
 
         obj_diff = attack_objective(X_c, y_c, w, b, lam) - obj_value
