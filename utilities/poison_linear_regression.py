@@ -11,29 +11,34 @@ def poison_linear_regression(X, y, X_c, y_c, lam, betta, sigma, eps):
     :param betta, sigma, eps: betta in (0, 1), sigma and eps are small positive contants
     :return: final attack points
     """
-    max_iter = 100
+    max_iter = 2000
+    y_all = np.concatenate([y, y_c])
+    w = np.zeros(X.shape[1])
+    b = 0
     for iter in range(max_iter):
-        X_new = np.concatenate([X, X_c], axis=0)
-        y_new = np.concatenate([y, y_c])
-        # learn classifier w and b on new data X_new, y_new
-        w, b = learn_LRclassifier(X_new, y_new, lam)
-        X_c_old = X_c
-        for ind, x_c in enumerate(X_c_old):
+        obj_value = attack_objective(X_c, y_c, w, b, lam)
+        for ind, x_c in enumerate(X_c):
+            X_all = np.concatenate([X, X_c], axis=0)
+            # learn classifier w and b on new data X_all, y_all
+            w, b = learn_LRclassifier(X_all, y_all, lam)
+
             # compute objective gradient on original data, excluding the atack samples
-            delta_W = compute_gradient(X, y, x_c, y_c[ind], w, b, lam)
-            d = box_projection(x_c + delta_W, 0, 1) - x_c
-            # line search to set the proper gradient step etta
-            x_c_old = x_c
-            for k in range(10):
-                etta = pow(betta, k + 1)
-                # update x_c along direction d to maximize error
-                x_c = x_c_old + etta * d
-                if attack_objective(x_c, y_c[ind], w, b, lam) <= (
-                        attack_objective(x_c_old, y_c[ind], w, b, lam) - sigma * etta * np.linalg.norm(d, 2)):
-                    break
-            X_c[ind] = x_c
-        if eps < attack_objective(X_c, y_c, w, b, lam) - attack_objective(X_c_old, y_c, w, b, lam) < eps:
-            break
+            delta_W = compute_gradient(X, y, X_c[ind], y_c[ind], w, b, lam)
+            d = box_projection(X_c[ind] + delta_W, -3, 3) - X_c[ind]
+            # d = delta_W
+            # line search to set the proper gradient step eta
+            # for k in range(100):
+            #     eta = pow(betta, k)
+            #     # update x_c along direction d to maximize error
+            #     # print(attack_objective(x_c + eta * d, y_c[ind], w, b, lam) - attack_objective(x_c, y_c[ind], w, b, lam), sigma * eta * np.linalg.norm(d, 2))
+            #     if attack_objective(x_c + eta * d, y_c[ind], w, b, lam) <= (attack_objective(x_c, y_c[ind], w, b, lam) + sigma * eta * np.linalg.norm(d, 2)):
+            #         X_c[ind] = x_c + eta * d
+            #         break
+            X_c[ind] = X_c[ind] + 0.1 * d
+        obj_diff = abs(attack_objective(X_c, y_c, w, b, lam) - obj_value)
+        print(iter, obj_value)
+        # if obj_diff < eps:
+        #     break
 
     return X_c
 

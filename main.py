@@ -69,10 +69,10 @@ def recovery():
 
 def regression():
     # poisoning for linear regression
-    n = 380
+    n1 = 20
     m = 20
     k = 20
-    n1 = 400 - n
+    n = 400 - n1
     X_star, U_star = generate_pristine_data(n, k, m, iters=1000)
 
     w_star = np.random.rand(m)
@@ -80,12 +80,13 @@ def regression():
     ind_adv_seeds = np.random.choice(n, n1, replace=False)
     X_c = X_star[ind_adv_seeds]
     y_c = y_star[ind_adv_seeds]
-    lam = 0.001
+    lam = 0.01
     betta = 0.5
-    sigma = 0.01
-    eps = 0.01
+    sigma = 5
+    eps = 0.00001
 
     X_a2 = poison_linear_regression(X_star, y_star, X_c, y_c, lam, betta, sigma, eps)
+    print("diff_Xc", np.sqrt(np.mean(pow(X_a2 - X_c, 2))))
     # X_a2 = (X_a2 - np.mean(X_a2)) / np.std(X_a2)
     print(np.mean(X_a2))
     print(np.std(X_a2))
@@ -97,7 +98,7 @@ def regression():
     w_predict = robust_regression.trimmed_principal_component_regression(X_star)
     y_predict = X_star.dot(w_predict)
     rmse = np.sqrt(np.mean(pow(y_predict - y_star, 2)))
-    print(rmse)
+    print('RMSE = ', rmse)
 
     # robust_recovery = RSR(X_all, n, n1, k, max_iters=100)
     # assignments, U, B = robust_recovery.recover()
