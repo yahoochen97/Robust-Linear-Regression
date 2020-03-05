@@ -15,7 +15,7 @@ def generate_gaussian(SIZE, k, iters=100):
         print("Matrix has rank other than k. Try again.")
         return None
 
-def generate_pristine_data(n, k, m, iters):
+def generate_pristine_data(n, k, m, iters=100):
     '''
     Generate pristine data.
     '''
