@@ -6,8 +6,9 @@ import matplotlib.pyplot as plt
 from utilities.robust_subspace_recovery import RSR
 from utilities.robust_regression import RobustRegression
 from utilities.poison_subspace_recovery import generate_pristine_data, poison_subspace_recovery
-from utilities.poison_linear_regression import poison_linear_regression, train_classifier
+from utilities.poison_linear_regression import poison_linear_regression
 from sklearn.preprocessing import normalize, MinMaxScaler
+from tqdm import tqdm, trange, tnrange
 
 
 def runtime():
@@ -151,8 +152,8 @@ def regression():
             w_predict = robust_regression.trimmed_principal_component_regression()
 
             # train normal LR classifier
-            w_lr, b_lr = train_classifier(X_all, y_all, param['lam'])
-            w_lro, b_lro = train_classifier(X_clean, y_clean, param['lam'])
+            w_lr = solve_LR(X_all, y_all)
+            w_lro = solve_LR(X_clean, y_clean)
 
             # generate test dataset
             X_test, _ = generate_pristine_data(n, k, m, iters=1000)
@@ -166,30 +167,40 @@ def regression():
             RMSEs_rlr[idx, run] = RMSE_rlr
 
             # test normal LR model
-            y_lr = X_test.dot(w_lr) + b_lr
+            y_lr = X_test.dot(w_lr)
             RMSE_lr = np.sqrt(np.mean((y_lr - y_test) ** 2))
             RMSEs_lr[idx, run] = RMSE_lr
-            y_lro = X_test.dot(w_lro) + b_lro
+            y_lro = X_test.dot(w_lro)
             RMSE_lro = np.sqrt(np.mean((y_lro - y_test) ** 2))
             RMSEs_lro[idx, run] = RMSE_lro
 
         print('# corrupted rows', n1,
-              'RMSE_rlr:', np.median(RMSEs_rlr[idx, :]),
-              'RMSE_lr:', np.median(RMSEs_lr[idx, :]),
-              'RMSE_lro', np.median(RMSEs_lro[idx, :]))
+              'RMSE_rlr:', np.mean(RMSEs_rlr[idx, :]),
+              'RMSE_lr:', np.mean(RMSEs_lr[idx, :]),
+              'RMSE_lro', np.mean(RMSEs_lro[idx, :]))
 
-    np.savetxt('test.out', (RMSEs_rlr, RMSEs_lr, RMSEs_lro), delimiter=',')
     # plot RMSE_rlr
     plt.figure()
-    plt.plot(n1s, np.median(RMSEs_rlr, axis=1), label='Robust LR')
-    plt.plot(n1s, np.median(RMSEs_lr, axis=1), label='LR')
-    plt.plot(n1s, np.median(RMSEs_lro, axis=1), label='LR attack free')
+    plt.plot(n1s, np.mean(RMSEs_rlr, axis=1), linestyle='dashed', marker='o', label='TPCR')
+    plt.plot(n1s, np.mean(RMSEs_lr, axis=1), linestyle='dashed', marker='o', label='LR (O+A)')
+    plt.plot(n1s, np.mean(RMSEs_lro, axis=1), linestyle='dashed', marker='o', label='LR (O)')
     plt.title('Regression Output RMSE vs # corrupted rows')
     plt.xlabel('corrupted rows')
     plt.ylabel('RMSE')
     plt.legend()
+    plt.savefig('result/RMSE_mean.png')
     plt.show()
-    plt.savefig('RMSE.png')
+
+    np.savetxt('result/rmse_rlr.out', RMSEs_rlr)
+    np.savetxt('result/rmse_lr.out', RMSEs_lr)
+    np.savetxt('result/rmse_lro.out', RMSEs_lro)
+
+
+def solve_LR(X, y):
+
+    w = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)
+
+    return w
 
 
 if __name__ == "__main__":

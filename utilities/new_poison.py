@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def poison_linear_regression(X, y, feature_range, X_c, y_c, param, max_iter=2000):
+def new_poisoning(X, y, feature_range, X_c, y_c, param, max_iter=2000):
     """
     Generate additional adversarial training data.
     :param X, y: the training data and lables, each feature is normalized in (0, 1)]
@@ -28,18 +28,20 @@ def poison_linear_regression(X, y, feature_range, X_c, y_c, param, max_iter=2000
             w, b = train_classifier(X_all, y_all, lam)  # learn classifier w and b on new data X_all, y_all
 
             # compute objective gradient on original data, excluding the attack samples
-            grad = compute_gradient(X, y, X_c[ind], y_c[ind], w, b, lam)
-            update_direction = box_projection(X_c[ind] + grad, feature_range) - X_c[ind]
+            grad_x, grad_y = compute_gradient(X, y, X_c[ind], y_c[ind], w, b, lam)
+            direction_x = box_projection(X_c[ind] + grad_x, feature_range) - X_c[ind]
+            direction_y = box_projection(y_c[ind] + grad_y, feature_range) - y_c[ind]
 
             # line search to set the proper gradient ascent step size eta
             for k in range(100):
                 eta = beta ** k
-                # update x_c along update_direction update_direction to maximize error
-                X_c[ind] = X_c[ind] + eta * update_direction
-                obj_new = attack_objective(X_c[ind] + eta * update_direction, y_c[ind], w, b, lam)
+                # update x_c along direction_x direction_x to maximize error
+                X_c[ind] = X_c[ind] + eta * direction_x
+                y_c[ind] = y_c[ind] + eta * direction_y
+                obj_new = attack_objective(X_c[ind] + eta * direction_x, y_c[ind], w, b, lam)
                 obj_old = attack_objective(X_c[ind], y_c[ind], w, b, lam)
                 # print(k, obj_new - obj_old)
-                if obj_new <= obj_old - sigma * eta * np.linalg.norm(update_direction, 2):
+                if obj_new <= obj_old - sigma * eta * np.linalg.norm(direction_x, 2):
                     break
 
         obj_diff = attack_objective(X_c, y_c, w, b, lam) - obj_value
@@ -47,7 +49,7 @@ def poison_linear_regression(X, y, feature_range, X_c, y_c, param, max_iter=2000
         if abs(obj_diff) < eps:
             break
 
-    return X_c
+    return X_c, y_c
 
 
 def train_classifier(X, y, lam):
@@ -78,20 +80,24 @@ def compute_gradient(X, y, x_c, y_c, w, b, lam):
 
     # solve linear system to obtain
     A = np.concatenate([np.concatenate([Sig + lam * v, mu.reshape(d, 1)], axis=1), np.concatenate([mu.reshape(d, 1).T, np.ones([1, 1])], axis=1)], axis=0)
-    B = -1/n * np.concatenate([M, w.reshape(d, 1).T], axis=0)
+    B = -1/n * np.concatenate([np.concatenate([M, w.reshape(d, 1).T], axis=0), np.concatenate([-x_c.reshape(d, 1), -np.ones([1, 1])], axis=0)], axis=1)
     solution_vec = np.linalg.solve(A, B)
-    dw = solution_vec[0:d].reshape(d, d)
-    db = solution_vec[-1].reshape(1, d)
+    dwdx = solution_vec[0:d, 0:d].reshape(d, d)
+    dbdx = solution_vec[-1, 0:d].reshape(1, d)
+    dwdy = solution_vec[0:d, -1].reshape(d, 1)
+    dbdy = solution_vec[-1, -1].reshape(1, 1)
 
     """compute gradient"""
     # compute gradient
     y = y.reshape(n, 1)
     w = w.reshape(d, 1)
     r = w.reshape(d, 1).T  # r is the gradient of regularization term w.r.t. w, for regression it is w^T
-    grad_vec = (X.dot(w) + b * np.ones([n, 1]) - y).T.dot(X.dot(dw) + np.ones([n, 1]).dot(db)) + lam * r.dot(dw)
-    grad_vec = grad_vec.T.reshape(d,)
+    grad_vec_x = (X.dot(w) + b * np.ones([n, 1]) - y).T.dot(X.dot(dwdx) + np.ones([n, 1]).dot(dbdx)) + lam * r.dot(dwdx)
+    grad_vec_x = grad_vec_x.T.reshape(d, )
+    grad_vec_y = (X.dot(w) + b * np.ones([n, 1]) - y).T.dot(X.dot(dwdy) + np.ones([n, 1]).dot(dbdy)) + lam * r.dot(dwdy)
+    grad_vec_y = grad_vec_y.T.reshape(1, )
 
-    return grad_vec
+    return grad_vec_x, grad_vec_y
 
 
 def box_projection(x, feature_range):

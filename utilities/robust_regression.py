@@ -43,6 +43,8 @@ class RobustRegression:
 
         it = 1
         while it <= self.max_iters:
+            if it == self.max_iters:
+                print("Trimmed Optimization Warning: Exceeds maximum iteration!")
             weights = self.optimize_parameters(assignments, x, y)
             losses = [0 for _ in range(self.n1 + self.n)]
             for i in range(self.n1 + self.n):
